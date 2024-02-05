@@ -30,10 +30,10 @@ class E5NN(PreTrainedModel):
             return_dict=True
         )
 
-        features = e5_outputs.pooler_output
-        features = torch.cat(
-            (features[:len(input_ids)//2], features[len(input_ids)//2:]), dim=-1)
-        logits = self.linear(features)
+        embeddings = e5_outputs.pooler_output
+        embeddings = torch.cat(
+            (embeddings[:len(input_ids)//2], embeddings[len(input_ids)//2:]), dim=-1)
+        logits = self.linear(embeddings)
         prob = torch.softmax(logits, dim=-1).to(self.device)
         loss = self.cross_entropy(prob, labels)
         return SequenceClassifierOutput(loss=loss, logits=logits)
