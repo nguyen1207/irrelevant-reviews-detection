@@ -1,20 +1,26 @@
+import torch
 from transformers import DataCollatorWithPadding
 
 
 class E5DataCollator(DataCollatorWithPadding):
 
     def __call__(self, examples):
-        batch_dict = {
-            'input_ids': [example['input_ids'] for example in examples],
-            'attention_mask': [example['attention_mask'] for example in examples],
-            'labels': [int(example['label']) for example in examples]
-        }
+        q_prefix, d_prefix = 'q_', 'd_'
 
-        collated_batch_dict = self.tokenizer.pad(
-            batch_dict,
+        queries = [{k[len(q_prefix):]: v for k, v in example.items() if q_prefix in k}
+                   for example in examples]
+
+        docs = [{k[len(d_prefix):]: v for k, v in example.items() if d_prefix in k}
+                for example in examples]
+
+        batch_collated = self.tokenizer.pad(
+            queries + docs,
             padding=self.padding,
             pad_to_multiple_of=self.pad_to_multiple_of,
             return_tensors=self.return_tensors
         )
 
-        return collated_batch_dict
+        batch_collated['labels'] = torch.tensor(
+            [example['label'] for example in examples])
+
+        return batch_collated

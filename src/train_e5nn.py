@@ -1,5 +1,6 @@
 import argparse
 
+import torch
 from peft import LoftQConfig, LoraConfig, TaskType, get_peft_model
 from transformers import AutoTokenizer, TrainingArguments
 
@@ -36,15 +37,22 @@ def main():
     epoch, batch_size, load8bit, lora_r, lora_alpha, data_file = args.epoch, args.batch_size, args.load8bit, args.lora_r, args.lora_alpha, args.data_file
 
     tokenizer = AutoTokenizer.from_pretrained('intfloat/multilingual-e5-large')
-    data_loader = E5DataLoader(tokenizer, data_files=data_file)
+    data_loader = E5DataLoader(tokenizer, data_file)
     train_data = data_loader.train_dataset
     eval_data = data_loader.eval_dataset
 
+    device = 'cuda' if torch.cuda.is_available() \
+        else 'mps' if torch.backends.mps.is_available() \
+        else 'cpu'
+
     if load8bit:
+        if device != 'cuda':
+            print('CUDA GPU not found for quantization')
+            exit(1)
         loftq_config = LoftQConfig(loftq_bits=8)
 
-    peft_config = LoraConfig(task_type=TaskType.SEQ_CLS,
-                             init_lora_weights="loftq" if load8bit else None,
+    peft_config = LoraConfig(task_type=TaskType.SEQ_CLS if load8bit else None,
+                             init_lora_weights="loftq" if load8bit else "gaussian",
                              loftq_config=loftq_config if load8bit else dict(),
                              target_modules=[
                                  'query',
@@ -60,6 +68,7 @@ def main():
     model = E5NN(config)
     model = get_peft_model(model, peft_config)
     model.print_trainable_parameters()
+    print(model)
 
     data_collator = E5DataCollator(
         tokenizer=tokenizer,
@@ -77,7 +86,9 @@ def main():
         save_strategy='steps',
         save_steps=0.2,
         logging_steps=0.2,
+        load_best_model_at_end=True,
         remove_unused_columns=False,
+        label_names=['labels']
     )
 
     trainer = E5Trainer(
