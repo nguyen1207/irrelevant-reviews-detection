@@ -6,7 +6,7 @@ from transformers import AutoTokenizer, TrainingArguments
 
 from DataCollator import E5DataCollator
 from DataLoader import E5DataLoader
-from metrics import compute_metrics
+from metrics import E5NN_compute_metrics
 from models.E5NN import E5NN, E5NNConfig
 from Trainer import E5Trainer
 
@@ -96,7 +96,7 @@ def main():
         args=training_args,
         train_dataset=train_data,
         eval_dataset=eval_data,
-        compute_metrics=compute_metrics,
+        compute_metrics=E5NN_compute_metrics,
         data_collator=data_collator,
         tokenizer=tokenizer,
     )

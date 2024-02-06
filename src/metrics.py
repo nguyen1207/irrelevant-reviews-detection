@@ -2,7 +2,7 @@ import evaluate
 import torch
 
 
-def compute_metrics(eval_pred):
+def E5NN_compute_metrics(eval_pred):
     logits = torch.tensor(eval_pred.predictions)
     labels = torch.tensor(eval_pred.label_ids, dtype=torch.int32)
     probs = torch.softmax(logits, dim=-1)
