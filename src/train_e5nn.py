@@ -34,7 +34,10 @@ def main():
     )
 
     args = parser.parse_args()
-    epoch, batch_size, load8bit, lora_r, lora_alpha, data_file = args.epoch, args.batch_size, args.load8bit, args.lora_r, args.lora_alpha, args.data_file
+    epoch, batch_size, load8bit, \
+        lora_r, lora_alpha, data_file = \
+        int(args.epoch), int(args.batch_size), args.load8bit, \
+        int(args.lora_r), int(args.lora_alpha), args.data_file
 
     tokenizer = AutoTokenizer.from_pretrained('intfloat/multilingual-e5-large')
     data_loader = E5DataLoader(tokenizer, data_file)
