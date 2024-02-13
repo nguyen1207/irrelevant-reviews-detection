@@ -1,13 +1,12 @@
 import argparse
 
 import torch
-from peft import LoftQConfig, LoraConfig, TaskType, get_peft_model
 from transformers import AutoTokenizer, TrainingArguments
 
 from DataCollator import E5DataCollator
 from DataLoader import E5DataLoader
 from metrics import E5NN_compute_metrics
-from models.E5NN import E5NN, E5NNConfig
+from models.E5NN import E5NN
 from Trainer import E5Trainer
 
 
@@ -23,54 +22,17 @@ def main():
     parser.add_argument(
         "--batch-size", help='Batch size (default: 2)', default=2, dest='batch_size'
     )
-    parser.add_argument(
-        "--lora-r", help='Rank of matrices (default: 8)', default=8, dest='lora_r'
-    )
-    parser.add_argument(
-        "--lora-alpha", help='Lora alpha (default: 32)', default=32, dest='lora_alpha'
-    )
-    parser.add_argument(
-        "--load-8-bit", help='8 bit quantization (default: False)', default=False, dest='load8bit'
-    )
 
     args = parser.parse_args()
-    epoch, batch_size, load8bit, \
-        lora_r, lora_alpha, data_file = \
-        int(args.epoch), int(args.batch_size), args.load8bit, \
-        int(args.lora_r), int(args.lora_alpha), args.data_file
+    epoch, batch_size, data_file = \
+        int(args.epoch), int(args.batch_size), args.data_file
 
     tokenizer = AutoTokenizer.from_pretrained('intfloat/multilingual-e5-large')
     data_loader = E5DataLoader(tokenizer, data_file)
     train_data = data_loader.train_dataset
     eval_data = data_loader.eval_dataset
 
-    device = 'cuda' if torch.cuda.is_available() \
-        else 'mps' if torch.backends.mps.is_available() \
-        else 'cpu'
-
-    if load8bit:
-        if device != 'cuda':
-            print('CUDA GPU not found for quantization')
-            exit(1)
-        loftq_config = LoftQConfig(loftq_bits=8)
-
-    peft_config = LoraConfig(task_type=TaskType.SEQ_CLS if load8bit else None,
-                             init_lora_weights="loftq" if load8bit else "gaussian",
-                             loftq_config=loftq_config if load8bit else dict(),
-                             target_modules=[
-                                 'query',
-                                 'key'
-                             ],
-                             inference_mode=False,
-                             r=lora_r,
-                             lora_alpha=lora_alpha,
-                             lora_dropout=0.1
-                             )
-
-    config = E5NNConfig()
-    model = E5NN(config)
-    model = get_peft_model(model, peft_config)
-    model.print_trainable_parameters()
+    model = E5NN()
     print(model)
 
     data_collator = E5DataCollator(
@@ -105,6 +67,8 @@ def main():
     )
 
     trainer.train()
+
+    trainer.save_model('./saved_models/e5nn')
 
 
 if __name__ == "__main__":
