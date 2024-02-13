@@ -18,8 +18,9 @@ class E5Output(ModelOutput):
 class E5Config(PretrainedConfig):
     model_type = 'E5'
 
-    def __init__(self, num_labels=2, **kwargs):
+    def __init__(self, device, num_labels=2, **kwargs):
         super().__init__(**kwargs)
+        self.device = device
         self.num_labels = num_labels
 
 
@@ -29,7 +30,9 @@ class E5(PreTrainedModel):
     def __init__(self, config):
         super(E5, self).__init__(config)
         self.num_labels = config.num_labels
-        self.e5 = AutoModel.from_pretrained('intfloat/multilingual-e5-large')
+        self.e5 = AutoModel.from_pretrained('intfloat/multilingual-e5-large',
+                                            load_in_8bit=True if config.device == 'cuda' else False
+                                            )
         self.cosine_loss = nn.CosineEmbeddingLoss()
 
     def forward(self, input_ids, attention_mask, labels, **kwargs):

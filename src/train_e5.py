@@ -68,7 +68,7 @@ def main():
                              lora_dropout=0.1
                              )
 
-    config = E5Config()
+    config = E5Config(device=device)
     model = E5(config)
     model = get_peft_model(model, peft_config)
     model.print_trainable_parameters()
@@ -106,6 +106,8 @@ def main():
     )
 
     trainer.train()
+
+    trainer.save_model('./saved_models/e5')
 
 
 if __name__ == "__main__":
