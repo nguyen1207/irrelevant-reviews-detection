@@ -1,7 +1,6 @@
 import argparse
 
-import torch
-from peft import LoftQConfig, LoraConfig, TaskType, get_peft_model
+from peft import LoraConfig, TaskType, get_peft_model
 from transformers import AutoTokenizer, TrainingArguments
 
 from DataCollator import E5DataCollator
@@ -45,19 +44,7 @@ def main():
     train_data = data_loader.train_dataset
     eval_data = data_loader.eval_dataset
 
-    device = 'cuda' if torch.cuda.is_available() \
-        else 'mps' if torch.backends.mps.is_available() \
-        else 'cpu'
-
-    if load8bit:
-        if device != 'cuda':
-            print('CUDA GPU not found for quantization')
-            exit(1)
-        loftq_config = LoftQConfig(loftq_bits=8)
-
-    peft_config = LoraConfig(task_type=TaskType.SEQ_CLS if load8bit else None,
-                             init_lora_weights="loftq" if load8bit else "gaussian",
-                             loftq_config=loftq_config if load8bit else dict(),
+    peft_config = LoraConfig(task_type=TaskType.FEATURE_EXTRACTION,
                              target_modules=[
                                  'query',
                                  'key'
@@ -68,7 +55,7 @@ def main():
                              lora_dropout=0.1
                              )
 
-    config = E5Config(device=device)
+    config = E5Config(load_in_8bit=load8bit)
     model = E5(config)
     model = get_peft_model(model, peft_config)
     model.print_trainable_parameters()
