@@ -38,7 +38,7 @@ class E5NN(torch.nn.Module):
         features = features[:sep] + features[sep:]
 
         logits = self.linear_relu_stack(features)
-
+        loss = None
         if labels is not None:
             prob = self.softmax(logits)
             loss = self.cross_entropy(prob, labels)
